@@ -1,0 +1,5 @@
+# WN11-SO-000070 remediation
+# Set machine inactivity limit to 15 minutes (900 seconds)
+
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" `
+ /v InactivityTimeoutSecs /t REG_DWORD /d 900 /f

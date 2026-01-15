@@ -32,6 +32,17 @@
       recommended by Microsoft【175559998948560†L181-L208】.
     - Displays the final value for verification.
 
+.NOTES
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-SO-000070
+
     Running this script will apply the group policy equivalent of
     disabling insecure guest logons, mitigating the risk of
     unauthenticated access to shared folders【561388641730424†L19-L34】.

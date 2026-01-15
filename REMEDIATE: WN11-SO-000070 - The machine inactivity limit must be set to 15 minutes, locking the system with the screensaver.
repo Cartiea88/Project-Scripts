@@ -1,3 +1,20 @@
+<#
+.SYNOPSIS
+      Remediate WN11-SO-000070 - The machine inactivity limit must be set to 15 minutes, locking the system with the screensaver.
+
+.NOTES
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-SO-000025
+
+#>
+
 # WN11-SO-000070 remediation
 # Set machine inactivity limit to 15 minutes (900 seconds)
 

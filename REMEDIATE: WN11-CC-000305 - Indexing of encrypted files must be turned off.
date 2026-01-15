@@ -29,11 +29,15 @@
     Configures the system so that encrypted files are not indexed.
 
 .NOTES
-    Author: ChatGPT
-    Date: January 2026
-    References:
-      - STIG WN11-CC-000305 check and fix texts【502138889669643†L34-L49】
-      - Microsoft policy documentation for AllowIndexingEncryptedStoresOrItems【676666456598241†L811-L872】
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-CC-000305
 #>
 
 function Assert-Administrator {

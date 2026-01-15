@@ -1,0 +1,4 @@
+# WN11-AC-000005 remediation
+# Set account lockout duration to 15 minutes
+
+net accounts /lockoutthreshold:5 /lockoutduration:15 /lockoutwindow:15

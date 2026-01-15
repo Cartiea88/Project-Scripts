@@ -1,0 +1,52 @@
+<#
+.SYNOPSIS
+      Remediate WN11-SO-000025 - The built-in guest account must be renamed.
+
+.NOTES
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-SO-000025
+
+
+# WN11-SO-000025 Remediation
+# Rename built-in Guest account to "Admin2"
+
+# Require admin
+if (-not ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Error "Run PowerShell as Administrator."
+    exit 1
+}
+
+Write-Host "Renaming built-in Guest account to 'Admin2'..." -ForegroundColor Cyan
+
+# Locate built-in Guest account by SID (-501)
+$guest = Get-LocalUser | Where-Object { $_.SID.Value -match "-501$" }
+
+if (-not $guest) {
+    Write-Error "Built-in Guest account not found."
+    exit 1
+}
+
+$oldName = $guest.Name
+
+# Rename account
+Rename-LocalUser -Name $oldName -NewName "Admin2"
+
+# Verify
+$verify = Get-LocalUser | Where-Object { $_.SID.Value -match "-501$" }
+
+if ($verify.Name -eq "Admin2") {
+    Write-Host "SUCCESS: Guest account renamed to Admin2 (WN11-SO-000025 compliant)." -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host "FAILURE: Rename did not apply." -ForegroundColor Red
+    exit 1
+}

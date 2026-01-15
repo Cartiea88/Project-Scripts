@@ -49,11 +49,15 @@
     downloads only on the local network.
 
 .NOTES
-    Author: ChatGPT
-    Date: January 2026
-    References:
-    - STIG WN11-CC-000206 check and fix texts【349850586040131†L31-L58】
-    - Delivery Optimization mode enumerations【552948421376183†L260-L276】【931623517710247†L532-L568】
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-CC-000206
 #>
 
 [CmdletBinding()]

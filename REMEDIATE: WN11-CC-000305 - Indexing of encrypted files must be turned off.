@@ -1,0 +1,75 @@
+# Disable-EncryptedFileIndexing.ps1
+#
+# Remediation script for STIG WN11-CC-000305: Indexing of encrypted files must be turned off.
+#
+# This script configures the Windows Search policy so that encrypted files and stores
+# are not indexed. According to DISA STIG WN11-CC-000305, indexing encrypted
+# files may expose sensitive data and must therefore be disabled. The STIG
+# requires that the registry value `AllowIndexingEncryptedStoresOrItems` under
+# `HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search` be set to `0` (disabled)
+#【502138889669643†L34-L44】. Microsoft’s policy documentation states that when this
+# policy is disabled, search services do not index encrypted items or stores, and
+# 0 is the most restrictive value【676666456598241†L811-L872】.
+#
+# This script ensures the registry path exists, sets the value to 0 (REG_DWORD),
+# and outputs the resulting configuration. It should be run with administrative
+# privileges.
+
+<#
+.SYNOPSIS
+    Disables indexing of encrypted files by setting the appropriate registry value.
+
+.DESCRIPTION
+    The script creates the registry key `HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search` if it
+    does not exist and sets the `AllowIndexingEncryptedStoresOrItems` value to 0. A value of 0
+    disables indexing of encrypted files, as required by STIG WN11-CC-000305【502138889669643†L34-L44】.
+
+.EXAMPLE
+    PS C:\> .\Disable-EncryptedFileIndexing.ps1
+    Configures the system so that encrypted files are not indexed.
+
+.NOTES
+    Author: ChatGPT
+    Date: January 2026
+    References:
+      - STIG WN11-CC-000305 check and fix texts【502138889669643†L34-L49】
+      - Microsoft policy documentation for AllowIndexingEncryptedStoresOrItems【676666456598241†L811-L872】
+#>
+
+function Assert-Administrator {
+    # Check for administrative privileges
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+    if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltinRole]::Administrator)) {
+        throw "This script must be run with administrative privileges."
+    }
+}
+
+try {
+    # Ensure script is executed as administrator
+    Assert-Administrator
+
+    $registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    $valueName = 'AllowIndexingEncryptedStoresOrItems'
+    $desiredValue = 0
+
+    # Create the key if it does not exist
+    if (-not (Test-Path $registryPath)) {
+        New-Item -Path $registryPath -Force | Out-Null
+    }
+
+    # Set the registry value to disable indexing of encrypted files
+    Set-ItemProperty -Path $registryPath -Name $valueName -Value $desiredValue -Type DWord
+
+    # Read back the value for confirmation
+    $currentValue = (Get-ItemProperty -Path $registryPath -Name $valueName).$valueName
+
+    if ($currentValue -eq $desiredValue) {
+        Write-Host "Indexing of encrypted files has been disabled. Registry value set to 0." -ForegroundColor Green
+    } else {
+        Write-Warning "Failed to set the registry value. Current value: $currentValue"
+    }
+
+} catch {
+    Write-Error $_.Exception.Message
+}

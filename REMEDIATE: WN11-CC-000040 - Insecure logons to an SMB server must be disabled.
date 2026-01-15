@@ -1,0 +1,73 @@
+# Disable-InsecureGuestLogons.ps1
+#
+# This script remediates STIG finding WN11‑CC‑000040 by disabling insecure
+# guest logons to SMB servers.  The STIG specifies that the policy
+# "Enable insecure guest logons" under Computer Configuration >>
+# Administrative Templates >> Network >> Lanman Workstation must be set
+# to "Disabled", which corresponds to setting the registry value
+# `AllowInsecureGuestAuth` to 0 (REG_DWORD) under
+# `HKLM\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation`【561388641730424†L19-L34】.
+#
+# Microsoft documentation explains that `AllowInsecureGuestAuth` controls
+# whether the SMB client allows insecure guest logons; a value of 0
+# means the client rejects insecure guest logons and is the default and
+# recommended setting【175559998948560†L181-L208】.
+
+<#
+ .SYNOPSIS
+    Disables insecure guest logons on Windows systems to comply with
+    STIG WN11‑CC‑000040.
+
+ .DESCRIPTION
+    This script enforces the STIG requirement by configuring the
+    `AllowInsecureGuestAuth` registry value.  It performs the following
+    actions:
+
+    - Verifies the script is running with administrative privileges.
+    - Creates the registry path
+      `HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation` if it
+      does not already exist.
+    - Sets the `AllowInsecureGuestAuth` value to `0` (REG_DWORD),
+      ensuring that the SMB client rejects insecure guest logons as
+      recommended by Microsoft【175559998948560†L181-L208】.
+    - Displays the final value for verification.
+
+    Running this script will apply the group policy equivalent of
+    disabling insecure guest logons, mitigating the risk of
+    unauthenticated access to shared folders【561388641730424†L19-L34】.
+
+#>
+
+function Assert-Admin {
+    # Ensures the script is executed with administrative privileges.
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
+        Write-Error "This script must be run with administrative privileges." -ErrorAction Stop
+    }
+}
+
+try {
+    Assert-Admin
+
+    # Define the registry path for LanmanWorkstation policy
+    $regPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation'
+
+    # Create the registry key if it doesn't exist
+    if (-not (Test-Path -Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+
+    # Set AllowInsecureGuestAuth to 0 (Disabled)
+    Set-ItemProperty -Path $regPath -Name 'AllowInsecureGuestAuth' -Value 0 -Type DWord
+    Write-Host "Set AllowInsecureGuestAuth to 0 to disable insecure guest logons."
+
+    # Read back the value for verification
+    $currentValue = (Get-ItemProperty -Path $regPath -Name 'AllowInsecureGuestAuth').AllowInsecureGuestAuth
+    Write-Host "Current AllowInsecureGuestAuth value: $currentValue"
+
+    Write-Host "Insecure guest logon policy has been remediated successfully."
+
+} catch {
+    Write-Error "Failed to disable insecure guest logons: $_"
+}

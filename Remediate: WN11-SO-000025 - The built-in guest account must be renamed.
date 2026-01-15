@@ -13,6 +13,7 @@
     Plugin IDs      : N/A
     STIG-ID         : WN11-SO-000025
 
+#>
 
 # WN11-SO-000025 Remediation
 # Rename built-in Guest account to "Admin2"

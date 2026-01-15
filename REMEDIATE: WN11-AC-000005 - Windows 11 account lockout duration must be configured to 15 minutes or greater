@@ -1,3 +1,18 @@
+<#
+.SYNOPSIS
+Remediate Windows 11 account lockout duration must be configured to 15 minutes or greater.
+
+.NOTES
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-AC-000005
+
 # WN11-AC-000005 remediation
 # Set account lockout duration to 15 minutes
 

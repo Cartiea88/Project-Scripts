@@ -13,12 +13,7 @@
     Plugin IDs      : N/A
     STIG-ID         : WN11-CC-000044
 
-.TESTED ON
-    Date(s) Tested  : 
-    Tested By       : 
-    Systems Tested  : 
-    PowerShell Ver. : 
-
+#>
 
 .DESCRIPTION
   Enforces "Prohibit use of Internet Connection Sharing on your DNS domain network" by setting:

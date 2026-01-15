@@ -1,0 +1,96 @@
+<#
+.SYNOPSIS
+      Remediate STIG WN11-CC-000044 (Disable Internet Connection Sharing)
+
+.NOTES
+    Author          : Christopher Danley
+    LinkedIn        : www.linkedin.com/in/christopherdanley
+    GitHub          : github.com/Cartiea88
+    Date Created    : 1/14/26
+    Last Modified   : 1/14/26
+    Version         : 1.0
+    CVEs            : N/A
+    Plugin IDs      : N/A
+    STIG-ID         : WN11-CC-000044
+
+.TESTED ON
+    Date(s) Tested  : 
+    Tested By       : 
+    Systems Tested  : 
+    PowerShell Ver. : 
+
+
+.DESCRIPTION
+  Enforces "Prohibit use of Internet Connection Sharing on your DNS domain network" by setting:
+    HKLM\SOFTWARE\Policies\Microsoft\Windows\Network Connections\NC_ShowSharedAccessUI (DWORD) = 0
+  And stops/disables the ICS service (SharedAccess).
+
+.PARAMETER Mode
+  Remediate (default) or Undo
+
+.NOTES
+  Run as Administrator.
+#>
+
+param(
+  [ValidateSet("Remediate","Undo")]
+  [string]$Mode = "Remediate"
+)
+
+function Assert-Admin {
+  $isAdmin = ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+  ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+  if (-not $isAdmin) {
+    throw "Please run PowerShell as Administrator."
+  }
+}
+
+Assert-Admin
+
+$RegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Network Connections"
+$RegName = "NC_ShowSharedAccessUI"
+
+if ($Mode -eq "Remediate") {
+
+  # Ensure policy key exists
+  if (-not (Test-Path $RegPath)) {
+    New-Item -Path $RegPath -Force | Out-Null
+  }
+
+  # STIG/GPO mapping: Prohibit ICS => NC_ShowSharedAccessUI = 0
+  New-ItemProperty -Path $RegPath -Name $RegName -PropertyType DWord -Value 0 -Force | Out-Null
+
+  # Stop + disable ICS service so it cannot run
+  $svc = Get-Service -Name "SharedAccess" -ErrorAction SilentlyContinue
+  if ($null -ne $svc) {
+    if ($svc.Status -ne "Stopped") {
+      Stop-Service -Name "SharedAccess" -Force -ErrorAction SilentlyContinue
+    }
+    Set-Service -Name "SharedAccess" -StartupType Disabled
+  }
+
+  Write-Host "[OK] WN11-CC-000044 remediated: ICS prohibited and SharedAccess disabled." -ForegroundColor Green
+  Write-Host "Registry set: $RegPath\$RegName = 0"
+  Write-Host "Service set: SharedAccess (ICS) stopped + Disabled"
+
+} else {
+
+  # Undo: remove policy value (or set to 1 if you prefer allowing UI)
+  if (Test-Path $RegPath) {
+    Remove-ItemProperty -Path $RegPath -Name $RegName -ErrorAction SilentlyContinue
+  }
+
+  # Re-enable service to default (Manual) and start it (optional)
+  $svc = Get-Service -Name "SharedAccess" -ErrorAction SilentlyContinue
+  if ($null -ne $svc) {
+    Set-Service -Name "SharedAccess" -StartupType Manual
+    # Start-Service -Name "SharedAccess" -ErrorAction SilentlyContinue  # uncomment if you want it started
+  }
+
+  Write-Host "[OK] Undo complete: Policy value removed; SharedAccess set to Manual." -ForegroundColor Yellow
+}
+
+# Optional: refresh policy (safe to try; ignore if gpupdate not available)
+try { gpupdate /target:computer /force | Out-Null } catch {}

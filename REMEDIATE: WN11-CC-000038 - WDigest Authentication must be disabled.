@@ -1,10 +1,71 @@
-.NOTES
-    Author          : Christopher Danley
-    LinkedIn        : www.linkedin.com/in/christopherdanley
-    GitHub          : github.com/Cartiea88
-    Date Created    : 1/14/26
-    Last Modified   : 1/14/26
-    Version         : 1.0
-    CVEs            : N/A
-    Plugin IDs      : N/A
-    STIG-ID         : WN11-CC-000305
+# Disable-WDigest.ps1
+#
+# This script remediates the Windows STIG requirement WN11-CC-000038 by disabling
+# WDigest authentication. According to the STIG check text, the registry value
+# `UseLogonCredential` under the path
+# `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\Wdigest` must
+# be a REG_DWORD set to 0 (disabled)【899341264354281†L24-L30】.  Setting this
+# value to 0 prevents Windows from storing clear-text credentials in memory.
+#
+# The script must be run with administrative privileges. It will:
+#   - Verify that it is running as administrator.
+#   - Ensure the registry key exists.
+#   - Set the `UseLogonCredential` value to 0 (REG_DWORD).
+#   - Display the resulting registry value for confirmation.
+#
+# Usage: Run this script from an elevated PowerShell prompt.
+
+function Assert-IsAdmin {
+    # Checks whether the current user context has administrative privileges.
+    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+    $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Error "This script must be run as an administrator. Please run again from an elevated PowerShell session."
+        exit 1
+    }
+}
+
+function Set-WDigestDisabled {
+    param (
+        [switch]$Force
+    )
+
+    $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\Wdigest'
+    $valueName = 'UseLogonCredential'
+    $desiredValue = 0
+
+    # Create registry key if it does not exist
+    if (-not (Test-Path $regPath)) {
+        try {
+            New-Item -Path $regPath -Force | Out-Null
+            Write-Host "Created registry path: $regPath"
+        } catch {
+            Write-Error "Failed to create registry path $regPath. $_"
+            return
+        }
+    }
+
+    # Set the registry value
+    try {
+        # Only set if the value is not already the desired value or if -Force is specified
+        $currentValue = (Get-ItemProperty -Path $regPath -Name $valueName -ErrorAction SilentlyContinue).$valueName
+        if ($null -eq $currentValue -or $Force -or $currentValue -ne $desiredValue) {
+            New-ItemProperty -Path $regPath -Name $valueName -Value $desiredValue -PropertyType DWord -Force | Out-Null
+            Write-Host "Set $valueName to $desiredValue (WDigest authentication disabled)."
+        } else {
+            Write-Host "$valueName is already set to the desired value ($desiredValue). No action taken."
+        }
+    } catch {
+        Write-Error "Failed to set $valueName to $desiredValue. $_"
+        return
+    }
+
+    # Output the current value for verification
+    $updatedValue = (Get-ItemProperty -Path $regPath -Name $valueName).$valueName
+    Write-Host "Current $valueName value: $updatedValue"
+}
+
+# Entry point
+Assert-IsAdmin
+Set-WDigestDisabled

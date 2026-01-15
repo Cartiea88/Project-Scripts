@@ -1,0 +1,114 @@
+# Set-DeliveryOptimizationDownloadMode.ps1
+#
+# Remediation script for STIG WN11-CC-000206: Windows Update must not obtain updates
+# from other PCs on the internet.
+#
+# According to DISA STIG guidance, Delivery Optimization must be configured
+# so that Windows Update does not download updates from peers on the internet. The
+# policy "Download Mode" (Computer Configuration → Administrative Templates →
+# Windows Components → Delivery Optimization → "Download Mode") should be
+# enabled with any option except "Internet"【349850586040131†L31-L58】. Acceptable
+# values include HTTP only (0), LAN (1), Group (2), Simple (99) and Bypass (100).
+# Internet (3) is explicitly disallowed as it allows peering with devices over
+# the internet【349850586040131†L31-L60】.
+#
+# The group policy setting maps to a registry value named "DODownloadMode" under
+# `HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization` for most
+# modern Windows versions【552948421376183†L260-L276】. For standalone or older
+# LTSB systems, the value is stored under
+# `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config`【349850586040131†L43-L51】.
+# A value of 0 (HTTP Only) disables peering altogether and is the most restrictive
+# acceptable option【552948421376183†L260-L276】. This script sets the download
+# mode to 0 by default but allows specifying another acceptable value if desired.
+# Values of 3 (Internet) are rejected.
+
+<#
+.SYNOPSIS
+    Configures Delivery Optimization download mode to disable internet peering.
+
+.DESCRIPTION
+    To comply with STIG WN11-CC-000206, Windows Update must not obtain updates
+    from other PCs on the Internet. This script sets the DODownloadMode registry
+    value to an acceptable configuration (default: HTTP Only, value 0) in both
+    the policy and fallback registry locations. It will create the required
+    registry keys if they do not exist and verify that the specified value is
+    allowed. If an invalid value (e.g., 3 for Internet) is supplied, the script
+    will refuse to apply it.
+
+.PARAMETER Mode
+    Integer specifying the download mode to set. Allowed values are 0 (HTTP
+    Only), 1 (LAN), 2 (Group), 99 (Simple), or 100 (Bypass). Defaults to 0.
+
+.EXAMPLE
+    PS C:\> .\Set-DeliveryOptimizationDownloadMode.ps1
+    Sets Delivery Optimization download mode to HTTP Only (0).
+
+.EXAMPLE
+    PS C:\> .\Set-DeliveryOptimizationDownloadMode.ps1 -Mode 1
+    Configures Delivery Optimization download mode to LAN (1), allowing peer
+    downloads only on the local network.
+
+.NOTES
+    Author: ChatGPT
+    Date: January 2026
+    References:
+    - STIG WN11-CC-000206 check and fix texts【349850586040131†L31-L58】
+    - Delivery Optimization mode enumerations【552948421376183†L260-L276】【931623517710247†L532-L568】
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory=$false)]
+    [ValidateSet(0, 1, 2, 99, 100)]
+    [int]$Mode = 0
+)
+
+function Assert-Administrator {
+    <#
+    .SYNOPSIS
+        Ensures the script is executed with administrative privileges.
+    .DESCRIPTION
+        Throws a terminating error if the current user is not running PowerShell
+        as an administrator. STIG remediation tasks require elevated rights to
+        modify system-level registry keys.
+    #>
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+    if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltinRole]::Administrator)) {
+        throw "This script must be run with administrative privileges."
+    }
+}
+
+try {
+    Assert-Administrator
+
+    # Validate that the chosen mode isn't the disallowed value (3 - Internet)
+    if ($Mode -eq 3) {
+        throw "Mode 3 (Internet) is not allowed according to STIG WN11-CC-000206. Use 0, 1, 2, 99, or 100."
+    }
+
+    Write-Verbose "Setting Delivery Optimization download mode to $Mode..."
+
+    # Define registry paths for policy and fallback settings
+    $policyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'
+    $fallbackPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config'
+
+    # Create the keys if they do not exist
+    if (-not (Test-Path $policyPath)) {
+        New-Item -Path $policyPath -Force | Out-Null
+    }
+    if (-not (Test-Path $fallbackPath)) {
+        New-Item -Path $fallbackPath -Force | Out-Null
+    }
+
+    # Apply the mode to both registry locations
+    Set-ItemProperty -Path $policyPath -Name 'DODownloadMode' -Value $Mode -Type DWord
+    Set-ItemProperty -Path $fallbackPath -Name 'DODownloadMode' -Value $Mode -Type DWord
+
+    Write-Host "Delivery Optimization download mode configured to $Mode." -ForegroundColor Green
+    Write-Host "Registry key $policyPath\\DODownloadMode is now set to $Mode." -ForegroundColor Green
+    Write-Host "Registry key $fallbackPath\\DODownloadMode is now set to $Mode." -ForegroundColor Green
+
+} catch {
+    Write-Error $_.Exception.Message
+}
